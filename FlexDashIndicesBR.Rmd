@@ -1,0 +1,389 @@
+---
+title: "Indices do Brasil (Censo IBGE 2010)"
+runtime: shiny
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    theme: flatly
+    source_code: embed
+    navbar:
+    - title: Sobre Mim
+      href: https://www.linkedin.com/in/ana-carla-maria-magalh%C3%A3es-5091b916b/
+      align: right
+    - title: Github
+      href: https://github.com/anacarlinham
+      align: right
+resource_files:
+- BasesEstados.xlsx
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(rsconnect)
+library(ggplot2)
+library(gapminder)
+library(tidyverse)
+require(dplyr)
+require(readxl)
+library(rstatix)
+library(geobr)
+library(ggplot2)
+library(crul)
+library(car)
+library(ggpubr)
+library(GGally)
+library(kableExtra)
+```
+
+
+
+```{r echo = FALSE}
+# BasesEstados <- read_excel("C:/Users/famil/Documents/Ana Carla UFPE/Shiny/Indices do Brasil/BasesEstados.xlsx",  sheet = "dados")
+# uteis <- BasesEstados %>% 
+#   select(Estado, 
+#          Região, 
+#          CodigoReg, 
+#          Gini, 
+#          IDH,
+#          Taxa_analfabetismo, 
+#          Expectativa_anos_de_estudo,
+#          Renda_per_capita,
+#          Perc_pobres, PIB, Populacao)
+# 
+# uteis$Estado[uteis$Estado == "Mato Grosso do Sul"] <- "Mato Grosso Do Sul"
+# uteis$Estado[uteis$Estado == "Rio de Janeiro"] <- "Rio De Janeiro"
+# uteis$Estado[uteis$Estado == "Rio Grande do Norte"] <- "Rio Grande Do Norte"
+# uteis$Estado[uteis$Estado == "Rio Grande do Sul"] <- "Rio Grande Do Sul"
+#
+# Salvar dados na mesma pasta e em .Rds
+# saveRDS(uteis, file="C:/Users/famil/Documents/Ana Carla UFPE/Shiny/Indices do Brasil/uteis.Rds")
+
+
+uteis <- read_rds("uteis.rds")
+```
+
+Índices do Brasil
+===================================== 
+
+Parâmetros do gráfico {.sidebar}
+-----------------------------------------------------------------------
+
+```{r echo = FALSE}
+varSelectInput("var1","Selecione a variável para o eixo x da figura 1:",uteis[6:9])
+
+
+varSelectInput("var4","Selecione a variável do eixo x da figura 2:",uteis[4:11])
+varSelectInput("var5","Selecione a variável do eixo y da figura 2:",uteis[4:11])
+
+```
+
+- O Índice de Desenvolvimento Humano (IDH) compara indicadores de países nos itens riqueza, alfabetização, educação, esperança de vida, natalidade e outros, com o intuito de avaliar o bem-estar de uma população, especialmente das crianças. Não reflete a desigualdade social, mede a qualidade de vida em relação a saúde, educação e renda p/ capta.
+
+- O Índice de Gini, é um instrumento para medir o grau de concentração de renda em determinado grupo. Ele aponta a diferença entre os rendimentos dos mais pobres e dos mais ricos. Quanto maior o indice de Gini maior a desigualdade e menos desenvolvida é a região. O indice de Gini reflete a desigualdade social.
+
+Row 
+-----------------------------------------------------------------------
+
+### PIB total do Brasil.
+
+```{r}
+totalPIB <- round(sum(uteis$PIB),2)
+valueBox(value =totalPIB, icon = '', color = "")
+
+```
+
+
+### População total do Brasil.
+
+```{r}
+totalPopu <- round(sum(uteis$Populacao),2)
+valueBox(value =totalPopu, icon = 'fa-users', color = "") #navy
+
+```
+
+
+### Renda per capita média do Brasil (em R$).
+
+```{r}
+
+totalRenda <- round(mean(uteis$Renda_per_capita),2)
+valueBox(value =totalRenda, icon = '', color = "")
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### IDH médio do Brasil.
+
+```{r}
+
+totalIDH <- round(mean(uteis$IDH),2)
+valueBox(value =totalIDH, icon = '', color = "")
+
+```
+
+
+### índice de Gini médio do Brasil.
+
+```{r}
+
+totalGini <- round(mean(uteis$Gini),2)
+valueBox(value =totalGini, icon = '', color = "")
+
+```
+
+Column 
+-----------------------------------------------------------------------
+```{r echo=FALSE}
+
+plotOutput(outputId = "plot1")
+plotOutput(outputId = "plot4")
+
+```
+
+
+
+
+```{r warning=FALSE, context="shiny"}
+output$plot1 = renderPlot({
+  ggplot(uteis, na.rm = T, aes(x=!!input$var1, y= Gini))+ 
+  geom_point(aes(col="Gini")) + 
+  geom_point(aes(y=IDH, col= "IDH")) +
+  theme_cleveland()+
+  labs(title = "Figura 1: Gráfico de dispersão para o coeficiente de Gini e IDH segundo \n a variável selecionada",
+       x=input$var1,
+       y="",
+       colour="")
+})
+
+output$plot4 = renderPlot({
+ggplot(uteis, na.rm = T, aes(x=!!input$var4, y= !!input$var5))+
+    geom_point(fill="blue")+
+  theme_cleveland()+ 
+  labs(title = "Figura 2: Gráfico de dispersão entre as variáveis selecionadas", 
+       x=input$var4,
+       y=input$var5,
+       colour="")
+})
+```
+
+
+Análise por Região
+===================================== 
+
+Parâmetros do gráfico {.sidebar}
+-----------------------------------------------------------------------
+
+```{r echo = FALSE}
+selectInput("var3",   # nome do botão de escolha
+            label = h3("Selecione uma Região"),    # texto que aparecerá acima do botão
+            choices = unique(uteis$Região),    #   escolhas possíveis (números de inscrição)
+            selected = 1)   # permite a seleção de um candidato por vez
+
+#varSelectInput("var6","Selecione a variável para o gráfico de barras:",uteis[4:11])
+varSelectInput("var2","Selecione a variável para as figuras 3 e 4:",uteis[4:11])
+
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+
+### PIB total da região selecionada.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Região == input$var3)
+  totalPIB <- round(sum(aux$PIB),2)
+valueBox(value =totalPIB, icon = '', color = "")
+})
+```
+
+### População total da região selecionada.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Região == input$var3)
+  totalPopu <- round(sum(aux$Populacao),2)
+valueBox(value =totalPopu, icon = 'fa-users', color = "")
+})
+```
+
+### Renda média da região selecionada (em R$).
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Região == input$var3)
+  totalRenda <- round(mean(aux$Renda_per_capita),2)
+valueBox(value =totalRenda, icon = '', color = "")
+})
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### IDH médio da região selecionada.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Região == input$var3)
+  totalIDH <- round(mean(aux$IDH),2)
+valueBox(value =totalIDH, icon = '', color = "")
+})
+```
+
+### Coeficiente de Gini médio da região selecionada.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Região == input$var3)
+  totalGini <- round(mean(aux$Gini),2)
+valueBox(value =totalGini, icon = '', color = "")
+})
+```
+
+Column 
+-----------------------------------------------------------------------
+```{r echo=FALSE}
+
+plotOutput(outputId = "plot3")
+plotOutput(outputId = "plot2")
+
+```
+
+
+```{r warning=FALSE, context="shiny"}
+
+output$plot3 = renderPlot({
+  aux = filter(uteis, Região == input$var3)
+aux %>% 
+  group_by(Estado, Região) %>%
+  ggplot(aes(x=Estado, y=!!input$var2, fill=Região))+
+  geom_bar(stat = "identity", color= "black", fill="blue", alpha = .5) +
+  labs(title = "Figura 3: Gráfico de barras da variável escolhida segundo estados brasileiros.",
+       x="",
+       y=input$var2,
+       fill="Estado")
+})
+
+output$plot2 = renderPlot({
+uteis %>% 
+  ggplot(aes(x=Região, y=!!input$var2, fill=Região))+
+  geom_boxplot(alpha = 0.8) +
+  labs(title = "Figura 4: Boxplot da variável selecionada segundo a região.",
+       x=input$var2,
+       y="",
+       fill="Região") })
+
+```
+
+
+
+Análise por Estado
+===================================== 
+
+Parâmetros do gráfico {.sidebar}
+-----------------------------------------------------------------------
+
+```{r echo = FALSE}
+selectInput("var7",   # nome do botão de escolha
+            label = h3("Selecione um Estado:"),    # texto que aparecerá acima do botão
+            choices = unique(uteis$Estado),    #   escolhas possíveis (números de inscrição)
+            selected = 1)   # permite a seleção de um candidato por vez
+
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+
+### PIB total do estado.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalPIB <- round((aux$PIB),2)
+valueBox(value =totalPIB, icon = '', color = "")
+})
+```
+
+### População total do estado.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalPopu <- round((aux$Populacao),2)
+valueBox(value =totalPopu, icon = 'fa-users', color = "")
+})
+```
+
+### Renda per capita total do estado (em R$).
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalRenda <- round((aux$Renda_per_capita),2)
+valueBox(value =totalRenda, icon = '', color = "")
+})
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### IDH do estado.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalIDH <- round((aux$IDH),2)
+valueBox(value =totalIDH, icon = '', color = "")
+})
+```
+
+### Coeficiente de Gini do estado.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalGini <- round((aux$Gini),2)
+valueBox(value =totalGini, icon = '', color = "")
+})
+```
+
+Row 
+-----------------------------------------------------------------------
+
+
+### Taxa de analfabetismo (%).
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalTaxa_analfabetismo <- round((aux$Taxa_analfabetismo),2)
+valueBox(value =totalTaxa_analfabetismo, icon = '', color = "")
+})
+```
+
+### Expectativa anos de estudo.
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalExpectativa_anos_de_estudo <- round((aux$Expectativa_anos_de_estudo),2)
+valueBox(value =totalExpectativa_anos_de_estudo, icon = 'fa-users', color = "")
+})
+```
+
+### Percentual de pobreza (%).
+
+```{r}
+renderValueBox({
+  aux = filter(uteis, Estado == input$var7)
+  totalPerc_pobres <- round((aux$Perc_pobres),2)
+valueBox(value =totalPerc_pobres, icon = '', color = "")
+})
+```
